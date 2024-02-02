@@ -10,41 +10,42 @@ namespace WebApplication1.Controllers
     public class WeatherForecastController : ControllerBase
     {
         private readonly string gpgPath = @"C:\Program Files (x86)\GnuPG\bin\gpg.exe";
-        private readonly string passphrase = "toto123";
 
-        [HttpGet("decrypt")]
-        public IActionResult Decrypt()
+        [HttpPost("decrypt")]
+        public IActionResult DecryptAndDownload()
         {
             try
             {
-                // Chemin du fichier chiffré 
-                string fileName = "Blagues.txt";
-                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string fileName = "SPRING.png"; // Nom de mon fichier PNG chiffré
+                string decryptedFolderPath = @"C:\Users\8301681S\Documents\DecryptedFiles"; // Chemin spécifié pour les fichiers déchiffrés
 
-                // Chemin du dossier où enregistrer les fichiers déchiffrés
-                string decryptedFolderPath = Path.Combine(documentsPath, "DecryptFiles");
+                // Chemin du fichier chiffré
+                string encryptedFilePath = Path.Combine(@"C:\Users\8301681S\Pictures\Screenshots", fileName + ".gpg");
 
-                // Si le dossier DecryptFiles existe, sinon créer
-                if (!Directory.Exists(decryptedFolderPath))
-                {
-                    Directory.CreateDirectory(decryptedFolderPath);
-                }
-
-                string encryptedFilePath = Path.Combine(documentsPath, fileName + ".gpg");
-                string decryptedFilePath = Path.Combine(decryptedFolderPath, fileName + "_decrypted.txt");
+                // Chemin du fichier déchiffré
+                string decryptedFilePath = Path.Combine(decryptedFolderPath, fileName.Replace(".gpg", "_decrypted.png"));
 
                 // Commande pour déchiffrer le fichier avec le mot de passe
-                string decryptCommand = $"--batch --yes --passphrase {passphrase} --output {decryptedFilePath} --decrypt {encryptedFilePath}";
+                string decryptCommand = $"--batch --yes --output {decryptedFilePath} --decrypt {encryptedFilePath}";
 
                 // Lancer le processus avec la commande GnuPG
                 RunGpgProcess(decryptCommand);
 
-                return Ok($"Fichier déchiffré avec succès. Chemin du fichier déchiffré : {decryptedFilePath}");
+                // Renvoyer le fichier déchiffré pour téléchargement avec choix de l'emplacement
+                return DownloadFile(decryptedFilePath, "image/png");
             }
             catch (Exception ex)
             {
                 return BadRequest($"Erreur lors du déchiffrement : {ex.Message}");
             }
+        }
+
+        private IActionResult DownloadFile(string filePath, string contentType)
+        {
+            var fileInfo = new FileInfo(filePath);
+            var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+
+            return File(fileStream, contentType, fileInfo.Name);
         }
 
         private void RunGpgProcess(string command)
